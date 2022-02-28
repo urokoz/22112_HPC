@@ -1,0 +1,38 @@
+For loop cp:
+
+real	0m22.962s
+user	0m12.730s
+sys	0m4.476s
+
+while loop cp:
+
+real	0m36.501s
+user	0m29.411s
+sys	0m4.023s
+
+Binary loop cp:
+
+real	0m25.977s
+user	0m18.377s
+sys	0m4.495s
+
+Chunk loop cp:
+
+real	0m7.956s
+user	0m0.592s
+sys	0m4.603s
+
+UNIX cp:
+
+real	0m6.689s
+user	0m0.002s
+sys	0m3.988s
+
+These results were indicative of my testing, which means that the methods ranked from best to worst are:
+1. UNIX cp
+2. Block reading
+3. Regular for loop
+4. Binary reading
+5. Regular while loop
+
+This is very weird to me as I expected binary reading to be better than the regular for loop.

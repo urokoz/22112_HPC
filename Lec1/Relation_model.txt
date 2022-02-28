@@ -1,0 +1,32 @@
+People{
+  CPR           PK
+  first_name
+  last_name
+  death
+}
+
+Relations{
+  Person_CPR     PK,  FK(People(CPR))),
+  Relation_CPR   PK,  FK(People(CPR))),
+  relation
+}
+# issue with double storage in son/daughter and mother/father. This is fixed by only storing mother/father
+# issue with double storage of marriage
+relation can be: (divorced)wife, (divorced)husband, mother, father
+constraints:
+relation will change to widow/widower on death (or just remove the relation)
+
+Disease_cases{
+  Person_CPR    PK,   FK(people(CPR)),
+  disease       PK,   FK(Diseases(Disease)),
+  start_date    PK,
+  end_date
+}
+# perhaps case ID to have a single unique ID instead of 3.
+Constraints:
+start_date and end_date cannot be after death
+
+Diseases{
+  Diseases      PK
+  inheritable
+}
