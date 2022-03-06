@@ -20,7 +20,7 @@ trans_table = bytes.maketrans(code_str, complement_str)
 # run through the file line-by-line
 for line in infile:
     # If a header is seen
-    if line.startswith(">"):
+    if line.startswith(b">"):
         # Write the header, counts and complement gene to the outfile and reset
         if gene_complement != b"":
             counts = "A:{} T:{} C:{} G:{} U:{}".format(a_count, t_count, c_count, g_count, u_count)     # create counts
