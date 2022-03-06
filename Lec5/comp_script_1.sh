@@ -6,4 +6,4 @@
 ### Send mail (or not)
 #PBS –m ae –M s183447@dtu.dk
 load module python36
-/home/projects/pr_course/people/matbor/complement_1.py
+/home/projects/pr_course/people/matbor/complement_1.py  # or the other files
