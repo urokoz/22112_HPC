@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 # open relevant files (these will be changed to the computerome paths)
-infile = open("/home/mathias/22112_High_performance_computing/Lec5/human.fsa", "r")
-outfile = open("/home/mathias/22112_High_performance_computing/Lec5/human_complement.fsa", "w")
+infile = open("/home/mathias/22112_High_performance_computing/Lec5/humantest.fsa", "r")
+outfile = open("/home/mathias/22112_High_performance_computing/Lec5/humantest_complement.fsa", "w")
 
 # initiate complement and counts
 a_count = 0
