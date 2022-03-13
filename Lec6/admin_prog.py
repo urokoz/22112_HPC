@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import subprocess
+import os
 
 def submit(command, runtime, cores, ram, directory='', modules='', group='pr_course',
     jobscript='jobscript', output='/dev/null', error='/dev/null'):
@@ -59,7 +60,7 @@ def submit(command, runtime, cores, ram, directory='', modules='', group='pr_cou
 
 
 def unix_call(command):
-    job = subprocess.run(command.split())
+    job = subprocess.Popen(command.split())
 
 
 if len(sys.argv) != 3:
@@ -71,6 +72,11 @@ except IOError as err:
     sys.exit("Cant open file:" + str(err))
 
 work_dir = sys.argv[2]
+if not os.path.exists(work_dir + sys.argv[1] + "_to_comp"):
+    os.mkdir(work_dir + sys.argv[1] + "_to_comp")
+if not os.path.exists(work_dir + sys.argv[1] + "_comped"):
+    os.mkdir(work_dir + sys.argv[1] + "_comped")
+
 
 seq_list = []
 index = 0
@@ -82,8 +88,8 @@ for line in infile:
         # Write the header, counts and complement gene to the outfile and reset
         if len(seq_list) > 0:
             # Name temporary files
-            outfile_name = work_dir + "to_comp/to_complement{:04d}.fsa".format(index)
-            comp_file_name = work_dir + "comped/comp{:04d}.fsa".format(index)
+            outfile_name = work_dir + sys.argv[1] + "_to_comp/to_complement{:04d}.fsa".format(index)
+            comp_file_name = work_dir + sys.argv[1] + "_comped/comp{:04d}.fsa".format(index)
             # Open output file and write a single fasta sequence
             try:
                 outfile = open(outfile_name, "wb")
@@ -95,11 +101,11 @@ for line in infile:
             seq_list = []
 
             # Queue job
-            submit(work_dir + "rev_comp_worker.py {} {}".format(outfile_name, comp_file_name),
-                    runtime = 30, cores=1, ram=10, directory=work_dir,
-                    modules="tools anaconda3/4.0.0", group='pr_course',
-                    jobscript='job_{}'.format(index), output='/dev/null', error='/dev/null')
-
+            # submit(work_dir + "rev_comp_worker.py {} {}".format(outfile_name, comp_file_name),
+            #         runtime = 30, cores=1, ram=10, directory=work_dir,
+            #         modules="tools anaconda3/4.0.0", group='pr_course',
+            #         jobscript='job_{}'.format(index), output='/dev/null', error='/dev/null')
+            unix_call(work_dir + "rev_comp_worker.py {} {}".format(outfile_name, comp_file_name))
             index += 1
 
         seq_list.append(line)
@@ -109,8 +115,8 @@ infile.close()
 
 if len(seq_list) > 0:
     # Name temporary files
-    outfile_name = "to_comp/to_complement{:04d}.fsa".format(index)
-    comp_file_name = "comped/comp{:04d}.fsa".format(index)
+    outfile_name = work_dir + sys.argv[1] + "_to_comp/to_complement{:04d}.fsa".format(index)
+    comp_file_name = work_dir + sys.argv[1] + "_comped/comp{:04d}.fsa".format(index)
     # Open output file and write a single fasta sequence
     try:
         outfile = open(outfile_name, "wb")
@@ -122,7 +128,25 @@ if len(seq_list) > 0:
     seq_list = []
 
     # Queue job
-    submit(work_dir + "rev_comp_worker.py {} {}".format(outfile_name, comp_file_name),
-            runtime = 30, cores=1, ram=10, directory=work_dir,
-            modules="tools anaconda3/4.0.0", group='pr_course',
-            jobscript='job_{}'.format(index), output='/dev/null', error='/dev/null')
+    # submit(work_dir + "rev_comp_worker.py {} {}".format(outfile_name, comp_file_name),
+    #         runtime = 30, cores=1, ram=10, directory=work_dir,
+    #         modules="tools anaconda3/4.0.0", group='pr_course',
+    #         jobscript='job_{}'.format(index), output='/dev/null', error='/dev/null')
+    unix_call(work_dir + "rev_comp_worker.py {} {}".format(outfile_name, comp_file_name))
+
+comp_flag = True
+collector_flag = False
+while not collector_flag:
+    if comp_flag:
+        for root, dirs, files in os.walk(work_dir + sys.argv[1] + "_to_comp"):
+            if len(files) == 0:
+                comp_flag = False
+                unix_call(work_dir + "collector.py " + work_dir + sys.argv[1] + "_comped humantest_comp.fsa")
+    else:
+        for root, dirs, files in os.walk(work_dir + sys.argv[1] + "_comped"):
+            if len(files) == 0:
+                collector_flag =True
+    
+
+os.rmdir(work_dir + sys.argv[1] + "_to_comp")
+os.rmdir(work_dir + sys.argv[1] + "_comped")
