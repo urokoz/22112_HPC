@@ -2,6 +2,7 @@
 import sys
 import subprocess
 import os
+import time
 
 def submit(command, runtime, cores, ram, directory='', modules='', group='pr_course',
     jobscript='jobscript', output='/dev/null', error='/dev/null'):
@@ -63,8 +64,8 @@ def unix_call(command):
     job = subprocess.Popen(command.split())
 
 
-if len(sys.argv) != 3:
-    sys.exit("Usage: admin_prog.py <input fasta file> <work dir>")
+if len(sys.argv) != 4:
+    sys.exit("Usage: admin_prog.py <input fasta file> <work dir> <final file>")
 
 try:
     infile = open(sys.argv[1], "rb")
@@ -100,7 +101,7 @@ for line in infile:
             outfile.close()
             seq_list = []
 
-            # Queue job
+            # Queue reverse complement job
             # submit(work_dir + "rev_comp_worker.py {} {}".format(outfile_name, comp_file_name),
             #         runtime = 30, cores=1, ram=10, directory=work_dir,
             #         modules="tools anaconda3/4.0.0", group='pr_course',
@@ -127,7 +128,7 @@ if len(seq_list) > 0:
     outfile.close()
     seq_list = []
 
-    # Queue job
+    # Queue reverse complement job
     # submit(work_dir + "rev_comp_worker.py {} {}".format(outfile_name, comp_file_name),
     #         runtime = 30, cores=1, ram=10, directory=work_dir,
     #         modules="tools anaconda3/4.0.0", group='pr_course',
@@ -137,16 +138,23 @@ if len(seq_list) > 0:
 comp_flag = True
 collector_flag = False
 while not collector_flag:
+    time.sleep(5)
     if comp_flag:
         for root, dirs, files in os.walk(work_dir + sys.argv[1] + "_to_comp"):
             if len(files) == 0:
                 comp_flag = False
-                unix_call(work_dir + "collector.py " + work_dir + sys.argv[1] + "_comped humantest_comp.fsa")
+                # Queue collector job
+                # submit(work_dir + "collector.py " + work_dir + sys.argv[1] + "_comped " + work_dir + sys.argv[3],
+                #         runtime = 30, cores=1, ram=10, directory=work_dir,
+                #         modules="tools anaconda3/4.0.0", group='pr_course',
+                #         jobscript='job_{}'.format(index), output='/dev/null', error='/dev/null')
+                unix_call(work_dir + "collector.py " + work_dir + sys.argv[1] + "_comped " + work_dir + sys.argv[3])
     else:
         for root, dirs, files in os.walk(work_dir + sys.argv[1] + "_comped"):
             if len(files) == 0:
                 collector_flag =True
-    
+
+
 
 os.rmdir(work_dir + sys.argv[1] + "_to_comp")
 os.rmdir(work_dir + sys.argv[1] + "_comped")

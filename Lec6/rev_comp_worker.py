@@ -12,14 +12,14 @@ try:
 except IOError as err:
     sys.exit("Cant open file: " + str(err))
 
-
+print("Starting " + sys.argv[1])
 # initiate complement and counts
 a_count = 0
 t_count = 0
 c_count = 0
 g_count = 0
 u_count = 0
-gene = b""
+gene = []
 
 # create translation table to complement
 trans_table = bytes.maketrans(b"agctyrwskmdvhb", b"tcgarywsmkhbdv")
@@ -32,12 +32,12 @@ for line in infile:
         header = line   # save header
     else:
         # count known and unknown bases
-        gene += line
+        gene.append(line)
 
 infile.close()
 os.remove(sys.argv[1])  # remove file after use
 
-complement = gene.translate(trans_table)    # translate line to complement
+complement = b"".join(gene).translate(trans_table)    # translate line to complement
 
 # Count bases
 a_count += gene.count(b"a")
@@ -56,3 +56,5 @@ for i in range(0, len(complement), 60):
 
 outfile.write(b"".join(seq_list))   # Write seq to outfile
 outfile.close()
+
+print("Finished job " + sys.argv[2])
