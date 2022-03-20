@@ -37,7 +37,7 @@ while line != b"":
 seqend = infile.tell()
 index_list.append(" ".join([str(headerstart), str(headerend), str(seq_start), str(seqend)]))
 
-outfile.write("\n".join(index_list))
+outfile.write("\n".join(index_list))    # write to outfile
 
 infile.close()
 outfile.close()

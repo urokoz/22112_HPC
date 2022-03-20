@@ -12,7 +12,7 @@ try:
 except IOError as err:
     sys.exit("Cant open file:" + str(err))
 
-# initiate flags
+# initiate flags and position in file
 index_list = []
 headerstart_flag = True
 headerend_flag = False
@@ -20,17 +20,17 @@ pos = 0
 first_flag = True
 chunk_size = 1000000
 while True:
-    chunk = infile.read(chunk_size)
+    chunk = infile.read(chunk_size) # read chunk
     index = 0
 
-    while True:
-        if headerstart_flag:
+    while True:     # seek through end of chunk
+        if headerstart_flag:    # look for the start of a header
             index = chunk.find(b">", index)
 
-            if index == -1:
+            if index == -1:     # header not found
                 break
-            else:
-                if not first_flag:
+            else:       # header found
+                if not first_flag:  # find end of sequence and write index of entry to list
                     seqend = pos + index - 1
                     index_list.append(" ".join([str(headerstart), str(headerend), str(seq_start), str(seqend)]))
                 else:
@@ -40,12 +40,12 @@ while True:
                 headerstart_flag = False
                 headerend_flag = True
 
-        if headerend_flag:
-            index = chunk.find(b"\n", index)
+        if headerend_flag:      # look for end of header
+            index = chunk.find(b"\n", index)    # find first newline after ">"
 
-            if index == -1:
+            if index == -1:     # newline not found
                 break
-            else:
+            else:       # newline found
                 headerend = pos + index
                 seq_start = headerend + 1
                 headerstart_flag = True
@@ -54,12 +54,13 @@ while True:
     if len(chunk) < chunk_size:
         break
 
-    pos += chunk_size
+    pos += chunk_size      # keep track of position in file
 
+# gets seqend for the last sequence and adds to the list
 seqend = pos + len(chunk)
 index_list.append(" ".join([str(headerstart), str(headerend), str(seq_start), str(seqend)]))
 
-outfile.write("\n".join(index_list))
+outfile.write("\n".join(index_list))    # write to outfile
 
 infile.close()
 outfile.close()
