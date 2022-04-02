@@ -68,7 +68,7 @@ if len(sys.argv) != 4:
     sys.exit("Usage: admin_prog.py <input fasta file> <work dir> <final file>")
 
 try:
-    infile = open(sys.argv[1], "rb")
+    infile = open("../data/" + sys.argv[1], "rb")
 except IOError as err:
     sys.exit("Cant open file:" + str(err))
 

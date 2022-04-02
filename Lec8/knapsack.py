@@ -92,6 +92,7 @@ while len(stack) > 0:
         best_problem = problem
         best_problem_size = size
 
+
 # print summary
 print("Items:", sum([int(x) for x in best_problem]))
 print("Combined size:", best_problem_size)
