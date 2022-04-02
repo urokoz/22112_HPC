@@ -4,6 +4,7 @@ import joblib as jl
 import os
 import time
 
+prog_start = time.time()
 
 def rev_comp_write(input_file, pos, trans_table):
 
@@ -91,6 +92,6 @@ files = jl.Parallel(n_jobs=8)(jl.delayed(rev_comp_write)(sys.argv[1], positions,
 
 rev_comp_end = time.time()
 
-
-print("Indexing:", index_end - index_start)
-print("Reverse complement and write:", rev_comp_end - index_end)
+print("Indexing:", index_end - index_start)                         # 0.500
+print("Reverse complement and write:", rev_comp_end - index_end)    # 9.330
+print("Total:", rev_comp_end - prog_start)                          # 9.831

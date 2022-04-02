@@ -2,7 +2,9 @@
 import sys
 import os
 import joblib as jl
+import time
 
+prog_start = time.time()
 
 def rev_comp(comp_files, trans_table):
     # initiate complement and counts
@@ -53,6 +55,8 @@ if not os.path.exists("/tmp/to_comp"):
 if not os.path.exists("/tmp/comped"):
     os.mkdir("/tmp/comped")
 
+file_split_start = time.time()
+
 seq_list = []
 comp_list = []
 index = 0
@@ -98,7 +102,11 @@ if len(seq_list) > 0:
     outfile.write(b"\n".join(seq_list))
     outfile.close()
 
+file_split_end = time.time()
+
 jl.Parallel(n_jobs=8)(jl.delayed(rev_comp)(files, trans_table) for files in comp_list)
+
+rev_comp_end = time.time()
 
 outfile = open(sys.argv[2], "wb")
 try:
@@ -112,7 +120,14 @@ for _, infile_name in comp_list:
     infile.close()
     os.remove(infile_name)
 
-
+file_collect_end = time.time()
 
 os.rmdir("/tmp/to_comp")
 os.rmdir("/tmp/comped")
+
+prog_end = time.time()
+
+print("File split:", file_split_end - file_split_start)         # 20.983 sec
+print("Reverse complement:", rev_comp_end - file_split_end)     # 18.267 sec
+print("Collection:", file_collect_end - rev_comp_end)           # 9.490 sec
+print("Total:", prog_end - prog_start)                          # 48.741 sec

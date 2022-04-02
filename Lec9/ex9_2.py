@@ -4,6 +4,7 @@ import joblib as jl
 import os
 import time
 
+prog_start = time.time()
 
 def rev_comp(input_file, pos, trans_table, index=0):
     # initiate complement and counts
@@ -122,8 +123,10 @@ for infile_name in files:
     outfile.write(infile.read())
     infile.close()
     os.remove(infile_name)
+
 write_end = time.time()
 
-print("Indexing:", index_end - index_start)
-print("Reverse complement:", rev_comp_end - index_end)
-print("Final write:", write_end - rev_comp_end)
+print("Indexing:", index_end - index_start)                 # 0.505
+print("Reverse complement:", rev_comp_end - index_end)      # 13.240
+print("Collection:", write_end - rev_comp_end)              # 8.876
+print("Total:", write_end - prog_start)                     # 22.621
