@@ -15,13 +15,10 @@ def rev_comp_write(input_file, pos, trans_table):
 
         seq = seq[::-1]     # reverse the sequence
 
-        seq_list = []
-        # write to fasta format
-        for i in range(0, len(seq), 60):
-            seq_list.append(seq[i:i+60] + b"\n")
+        seq_list = [seq[i:i+60] for i in range(0, len(seq), 60)]    # split seq into 60 aa long segments
 
         infile.seek(pos[2])     # go back to start of sequence
-        infile.write(b"".join(seq_list))   # write seq to outfile overwriting the sequence
+        infile.write(b"\n".join(seq_list))   # write seq to outfile overwriting the sequence
 
 
 if len(sys.argv) != 2:
@@ -93,6 +90,6 @@ files = jl.Parallel(n_jobs=8)(jl.delayed(rev_comp_write)(sys.argv[1], positions,
 
 rev_comp_end = time.time()
 
-print("Indexing:", index_end - index_start)                         # 0.500
-print("Reverse complement and write:", rev_comp_end - index_end)    # 9.330
-print("Total:", rev_comp_end - prog_start)                          # 9.831
+print("Indexing:", index_end - index_start)                         # 0.489
+print("Reverse complement and write:", rev_comp_end - index_end)    # 6.168
+print("Total:", rev_comp_end - prog_start)                          # 6.657
