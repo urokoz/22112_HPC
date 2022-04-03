@@ -14,6 +14,7 @@ def rev_comp(input_file, pos, trans_table, index=0):
     g_count = 0
     u_count = 0
 
+    # read in the header and sequence from the file based on the indexes
     with open(input_file, "rb") as infile:
         infile.seek(pos[0])
         header = infile.read(pos[1] - pos[0])
@@ -29,15 +30,16 @@ def rev_comp(input_file, pos, trans_table, index=0):
     g_count += seq.count(b"g")
     u_count += len(seq) - (a_count + t_count + c_count + g_count)
 
-    seq = seq[::-1]
+    seq = seq[::-1]     # reverse the sequence
+
     seq_list = []
+    # write to fasta format
     for i in range(0, len(seq), 60):
         seq_list.append(seq[i:i+60] + b"\n")
 
     counts = "A:{} T:{} C:{} G:{} U:{}".format(a_count, t_count, c_count, g_count, u_count)     # create counts
+    # create temporarty file in tmpfs and write the reverse complement to it
     output_file = "/tmp/rev_comp_{:04d}.fsa".format(index)
-    # output_file = sys.argv[2]
-    # with open(output_file, "ab+") as outfile:
     with open(output_file, "wb") as outfile:
         outfile.write(header + b" complement " + counts.encode("ascii") + b"\n")    # write header to outfile
         outfile.write(b"".join(seq_list))   # Write seq to outfile
@@ -100,15 +102,15 @@ while True:
 
 # gets seqend for the last sequence and adds to the list
 seqend = pos + len(chunk)
-infile.close()
-
 index_list.append([headerstart, headerend, seq_start, seqend])
 
+infile.close()
 index_end = time.time()
 
 # create translation table to complement
 trans_table = bytes.maketrans(b"agctyrwskmdvhb", b"tcgarywsmkhbdv")
 
+# reverse complement the fasta entries parallelised to 8 jobs at a time
 files = jl.Parallel(n_jobs=8)(jl.delayed(rev_comp)(sys.argv[1], positions, trans_table, i) for i, positions in enumerate(index_list))
 
 rev_comp_end = time.time()
@@ -118,11 +120,12 @@ try:
 except IOError as err:
     sys.exit("Cant open file: " + str(err))
 
+# collect the temporary files into a final fasta file
 for infile_name in files:
     infile = open(infile_name, "rb")
     outfile.write(infile.read())
     infile.close()
-    os.remove(infile_name)
+    os.remove(infile_name)      # delete temporary file
 
 write_end = time.time()
 

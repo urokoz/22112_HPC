@@ -7,20 +7,21 @@ import time
 prog_start = time.time()
 
 def rev_comp_write(input_file, pos, trans_table):
-
     with open(input_file, "r+b") as infile:
-        infile.seek(pos[2])
-        seq = infile.read(pos[3] - pos[2])
+        infile.seek(pos[2])     # go to start of sequence
+        seq = infile.read(pos[3] - pos[2])  # read sequence
 
         seq = seq.translate(trans_table, delete=b"\n")    # translate line to complement
 
-        seq = seq[::-1]
+        seq = seq[::-1]     # reverse the sequence
+
         seq_list = []
+        # write to fasta format
         for i in range(0, len(seq), 60):
             seq_list.append(seq[i:i+60] + b"\n")
 
-        infile.seek(pos[2])
-        infile.write(b"".join(seq_list))   # Write seq to outfile
+        infile.seek(pos[2])     # go back to start of sequence
+        infile.write(b"".join(seq_list))   # write seq to outfile overwriting the sequence
 
 
 if len(sys.argv) != 2:
@@ -79,15 +80,15 @@ while True:
 
 # gets seqend for the last sequence and adds to the list
 seqend = pos + len(chunk)
-infile.close()
-
 index_list.append([headerstart, headerend, seq_start, seqend])
 
+infile.close()
 index_end = time.time()
 
 # create translation table to complement
 trans_table = bytes.maketrans(b"agctyrwskmdvhb", b"tcgarywsmkhbdv")
 
+# reverse complement the fasta entries parallelised to 8 jobs at a time
 files = jl.Parallel(n_jobs=8)(jl.delayed(rev_comp_write)(sys.argv[1], positions, trans_table) for positions in index_list)
 
 rev_comp_end = time.time()
