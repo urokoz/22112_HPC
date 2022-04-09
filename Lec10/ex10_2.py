@@ -17,20 +17,21 @@ def overrep_kmer(infile_name, pos, k, i):
         seq = infile.read(pos[3] - pos[2])
 
     seq = seq.translate(None, delete=b"\n")
+    seq = seq.decode()
 
     seq_n = len(seq)
     Pnt_dict = dict()
 
 
-    nt_count = [seq.count(nt) for nt in b"atcg"]
+    nt_count = [seq.count(nt) for nt in "atcg"]
 
-    kmer_count = [seq.count("".join(kmer).encode()) for kmer in itertools.product("atcg", repeat=k)]
+    kmer_count = [seq.count("".join(kmer)) for kmer in itertools.product("atcg", repeat=k)]
     print("Finished {}".format(i))
     return nt_count, kmer_count
 
 
 if len(sys.argv) != 3:
-    sys.exit("Usage: ex9_3.py <input fasta file> <k>")
+    sys.exit("Usage: ex10_2.py <input fasta file> <k>")
 
 filename = sys.argv[1]
 k = int(sys.argv[2])
@@ -96,7 +97,7 @@ tot_nt_count = []
 tot_kmer_count = []
 
 
-hello = jl.Parallel(n_jobs=11)(jl.delayed(overrep_kmer)(filename, pos, k, i+1) for i, pos in enumerate(index_list))
+hello = jl.Parallel(n_jobs=8)(jl.delayed(overrep_kmer)(filename, pos, k, i+1) for i, pos in enumerate(index_list))
 
 # print(hello)
 

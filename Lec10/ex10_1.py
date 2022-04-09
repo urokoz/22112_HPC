@@ -9,7 +9,7 @@ import numpy as np
 
 def overrep_kmer(infile_name, pos, k):
 
-    with open(infile_name, "rb") as infile:
+    with open(infile_name, "r") as infile:
         infile.seek(pos[0])
         header = infile.read(pos[1] - pos[0])
         infile.seek(pos[2])
@@ -23,13 +23,13 @@ def overrep_kmer(infile_name, pos, k):
 
     nt_count = [seq.count(nt) for nt in b"atcg"]
 
-    kmer_count = [seq.count("".join(kmer).encode()) for kmer in itertools.product("atcg", repeat=k)]
+    kmer_count = [seq.count("".join(kmer)) for kmer in itertools.product("atcg", repeat=k)]
 
     return nt_count, kmer_count
 
 
 if len(sys.argv) != 3:
-    sys.exit("Usage: ex9_3.py <input fasta file> <k>")
+    sys.exit("Usage: ex10_1.py <input fasta file> <k>")
 
 filename = sys.argv[1]
 k = int(sys.argv[2])
