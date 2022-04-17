@@ -7,25 +7,26 @@ import itertools
 import numpy as np
 
 
-def overrep_kmer(infile_name, pos, k):
+def overrep_kmer(infile_name, nt_dict, kmer_dict, pos, k):
 
-    with open(infile_name, "r") as infile:
-        infile.seek(pos[0])
-        header = infile.read(pos[1] - pos[0])
+    with open(infile_name, "rb") as infile:
         infile.seek(pos[2])
         seq = infile.read(pos[3] - pos[2])
 
     seq = seq.translate(None, delete=b"\n")
 
-    seq_n = len(seq)
-    Pnt_dict = dict()
+    for nt in b"atcg":
+        nt_dict[nt] += seq.count(nt)
 
+    for i in range(len(seq)-(k-1)):
+        kmer = seq[i:i+k]
 
-    nt_count = [seq.count(nt) for nt in b"atcg"]
+        try:
+            kmer_dict[kmer] += 1
+        except:
+            kmer_dict[kmer] = 1
 
-    kmer_count = [seq.count("".join(kmer)) for kmer in itertools.product("atcg", repeat=k)]
-
-    return nt_count, kmer_count
+    return nt_dict, kmer_dict
 
 
 if len(sys.argv) != 3:
@@ -88,36 +89,34 @@ seqend = pos + len(chunk)
 index_list.append([headerstart, headerend, seq_start, seqend])
 
 infile.close()
-tot_nt_count = []
-tot_kmer_count = []
+
+kmer_dict = dict()
+nt_dict = dict()
+for nt in b"atcg":
+    nt_dict[nt] = 0
+
 
 for i, pos in enumerate(index_list):
-    print("Working on {}".format(i+1))
-    nt_count, kmer_count = overrep_kmer(filename, pos, k)
+    print("Working on sequence {}".format(i+1))
+    nt_dict, kmer_dict = overrep_kmer(filename, nt_dict, kmer_dict, pos, k)
 
-    if tot_nt_count == []:
-        tot_nt_count = nt_count
-    else:
-        tot_nt_count = [old_count + new_count for old_count, new_count in zip(tot_nt_count, nt_count)]
+filtered_kmer_dict = dict()
+for kmer_list in itertools.product("atcg", repeat=k):
+    kmer = "".join(kmer_list).encode()
+    filtered_kmer_dict[kmer] = kmer_dict[kmer]
 
-    if tot_kmer_count == []:
-        tot_kmer_count = kmer_count
-    else:
-        tot_kmer_count = [old_count + new_count for old_count, new_count in zip(tot_kmer_count, kmer_count)]
-
-tot_nt = sum(tot_nt_count)
-tot_kmer = sum(tot_kmer_count)
-
-Pnt_dict = dict()
-for nt, count in zip("atcg", tot_nt_count):
-    Pnt_dict[nt] = count/tot_nt
-
+tot_nt = sum(nt_dict.values())
+tot_kmer = sum(filtered_kmer_dict.values())
 
 overreps = []
-for count, kmer in zip(tot_kmer_count, itertools.product("atcg", repeat=k)):
-    random_chance = np.prod([Pnt_dict[nt] for nt in kmer])
+for kmer, count in filtered_kmer_dict.items():
+    random_chance = np.prod([nt_dict[nt]/tot_nt for nt in kmer])
 
-    if (count/tot_kmer) > (2*random_chance):
-        overreps.append("".join(kmer))
+    actual_rep = count/tot_kmer
+    if actual_rep > (2*random_chance):
+        overreps.append((kmer, actual_rep/random_chance))
 
-print(overreps)
+overreps = sorted(overreps, key=lambda x:x[1], reverse = True)
+
+for kmer, rep in overreps:
+    print(kmer.decode(), rep, sep="\t")

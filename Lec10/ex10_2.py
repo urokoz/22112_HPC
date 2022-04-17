@@ -5,29 +5,58 @@ import joblib as jl
 import time
 import itertools
 import numpy as np
+import pickle
 
 start_time = time.time()
 
-def overrep_kmer(infile_name, pos, k, i):
-    print("Working on {}".format(i))
+def overrep_kmer(infile_name, global_dict_path, pos, k, job_nr):
+    print("Working on {}".format(job_nr))
+
     with open(infile_name, "rb") as infile:
-        infile.seek(pos[0])
-        header = infile.read(pos[1] - pos[0])
         infile.seek(pos[2])
         seq = infile.read(pos[3] - pos[2])
 
     seq = seq.translate(None, delete=b"\n")
-    seq = seq.decode()
 
-    seq_n = len(seq)
-    Pnt_dict = dict()
+    nt_dict = dict()
+    for nt in b"atcg":
+        nt_dict[nt] = seq.count(nt)
+    
+    kmer_dict = dict()
+    for i in range(len(seq)-(k-1)):
+        kmer = seq[i:i+k]
+
+        try:
+            kmer_dict[kmer] += 1
+        except:
+            kmer_dict[kmer] = 1
 
 
-    nt_count = [seq.count(nt) for nt in "atcg"]
+    # semaphore-based memory efficient global kmer count
+    while True:
+        try:
+            os.mkdir("/tmp/ex_10_semaphore")
+            print("Worker {} created semaphore".format(job_nr))
 
-    kmer_count = [seq.count("".join(kmer)) for kmer in itertools.product("atcg", repeat=k)]
-    print("Finished {}".format(i))
-    return nt_count, kmer_count
+            with open(global_dict_path, "rb") as f:
+                global_kmer_dict = pickle.load(f)
+
+            for kmer in global_kmer_dict.keys():
+                global_kmer_dict[kmer] += kmer_dict.get(kmer, 0)
+
+            with open(global_dict_path, "wb") as f:
+                pickle.dump(global_kmer_dict, f)
+
+            os.rmdir("/tmp/ex_10_semaphore")
+            print("Worker {} released semaphore".format(job_nr))
+            break
+
+        except:
+            print("Worker {} sleeping waiting for semaphore".format(job_nr))
+            time.sleep(0.1)
+
+    print("Finished {}".format(job_nr))
+    return nt_dict
 
 
 if len(sys.argv) != 3:
@@ -35,11 +64,12 @@ if len(sys.argv) != 3:
 
 filename = sys.argv[1]
 k = int(sys.argv[2])
+
 # open files with byteread
 try:
     infile = open(filename, "rb")
 except IOError as err:
-    sys.exit("Cant open file:" + str(err))
+    sys.exit("Cant open file: " + str(err))
 
 # initiate flags and position in file
 index_list = []
@@ -88,48 +118,48 @@ while True:
 # gets seqend for the last sequence and adds to the list
 seqend = pos + len(chunk)
 index_list.append([headerstart, headerend, seq_start, seqend])
-
 infile.close()
-
+# sort in order to load balance
 index_list = sorted(index_list, key=lambda x:(x[3]-x[2]), reverse = True)
 
-tot_nt_count = []
-tot_kmer_count = []
+index_end_time = time.time()
 
+global_kmer_dict = dict()
+for kmer in itertools.product("atcg", repeat=k):
+    global_kmer_dict["".join(kmer).encode()] = 0
 
-hello = jl.Parallel(n_jobs=8)(jl.delayed(overrep_kmer)(filename, pos, k, i+1) for i, pos in enumerate(index_list))
+global_dict_path = "/tmp/global_kmer_dict.pkl"
+with open(global_dict_path, "wb") as f:
+    pickle.dump(global_kmer_dict, f)
 
-# print(hello)
+try:
+    os.rmdir("/tmp/ex_10_semaphore")
+except:
+    pass
 
-for (nt_count, kmer_count) in hello:
-    if tot_nt_count == []:
-        tot_nt_count = nt_count
-    else:
-        tot_nt_count = [old_count + new_count for old_count, new_count in zip(tot_nt_count, nt_count)]
+dir_created_time = time.time()
 
-    if tot_kmer_count == []:
-        tot_kmer_count = kmer_count
-    else:
-        tot_kmer_count = [old_count + new_count for old_count, new_count in zip(tot_kmer_count, kmer_count)]
+nt_dicts = jl.Parallel(n_jobs=8)(jl.delayed(overrep_kmer)(filename, global_dict_path, pos, k, job_nr+1) for job_nr, pos in enumerate(index_list))
 
-tot_nt = sum(tot_nt_count)
-tot_kmer = sum(tot_kmer_count)
+total_nt_dict = dict()
+for nt in b"atcg":
+    total_nt_dict[nt] = sum([dict.get(nt, 0) for dict in nt_dicts])
 
-Pnt_dict = dict()
-for nt, count in zip("atcg", tot_nt_count):
-    Pnt_dict[nt] = count/tot_nt
+with open(global_dict_path, "rb") as f:
+    global_kmer_dict = pickle.load(f)
 
+tot_nt = sum(total_nt_dict.values())
+tot_kmer = sum(global_kmer_dict.values())
 
 overreps = []
-for count, kmer in zip(tot_kmer_count, itertools.product("atcg", repeat=k)):
-    random_chance = np.prod([Pnt_dict[nt] for nt in kmer])
+for kmer, count in global_kmer_dict.items():
+    random_chance = np.prod([total_nt_dict[nt]/tot_nt for nt in kmer])
 
     actual_rep = count/tot_kmer
     if actual_rep > (2*random_chance):
-        overreps.append(("".join(kmer),actual_rep/random_chance))
+        overreps.append((kmer,actual_rep/random_chance))
 
 overreps = sorted(overreps, key=lambda x:x[1], reverse = True)
 
 for kmer, rep in overreps:
-    print(kmer, rep, sep="\t")
-print("Time:", time.time()-start_time)
+    print(kmer.decode(), rep, sep="\t")
