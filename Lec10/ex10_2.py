@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import sys
 import os
-import joblib as jl
 import time
+import joblib as jl
 import itertools
 import numpy as np
 import pickle
