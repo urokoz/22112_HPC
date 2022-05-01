@@ -4,6 +4,7 @@ import os
 import time
 import itertools
 
+start_time = time.time()
 
 def num2dna(num, k):
     bi_num = bin(num)[2:]
@@ -87,28 +88,48 @@ seqend = pos + len(chunk)
 index_list.append([headerstart, headerend, seq_start, seqend])
 infile.close()
 
-index_array = bytearray(4**k)
+setup_end_time = time.time()
 
+n_seq = len(index_list)
 kmer_dict = dict()
+index_array = bytearray(4**k)   # initiate bytearray
 base4 = bytes.maketrans(b'acgt',b'0123')
+# go through the kmers in each fasta entry
 for i, pos in enumerate(index_list):
-    print("# Working on sequence {}".format(i+1))
+    print("# Working on sequence {}/{}".format(i+1, n_seq))
     # open file, extract sequence and remove newlines
     with open(filename, "rb") as infile:
         infile.seek(pos[2])
         seq = infile.read(pos[3] - pos[2])
-    seq = seq.translate(base4, delete=b" \t\n")
+    seq = seq.translate(base4, delete=b"\n")
 
     # count the occurences of the possible kmers
     for i in range(len(seq)-(k-1)):
         kmer = seq[i:i+k]   #extract sequence
 
         try:
-            index_array[int(kmer, base = 4)] += 1
-
+            # convert sequence to int using base 4
+            # non ATCG kmers will fail here
+            idx = int(kmer, base = 4)
+            # count the kmer occurences in the byte array
+            if index_array[idx] == 255:   # max count 255
+                pass
+            else:
+                index_array[idx] += 1
         except:
             pass
 
+kmer_count_time = time.time()
+
+# print kmers that only appear once
 for i, val in enumerate(index_array):
     if val == 1:
         print(num2dna(i, k))
+
+find_singles = time.time()
+
+                                                                                # time for 10mer
+print("# Indexing and setup:", round(setup_end_time - start_time, 5))           # 1.73636 s
+print("# kmer count:", round(kmer_count_time - setup_end_time, 5))              # 1311.29641 s
+print("# Find singles:", round(find_singles - kmer_count_time, 5))              # 0.06882 s
+print("# Total:", round(find_singles - start_time, 5))                          # 1313.10158 s

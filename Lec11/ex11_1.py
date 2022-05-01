@@ -4,17 +4,11 @@ import os
 import time
 import itertools
 
-def num2dna(num):
-    bi_num = "{:b}".format(num)
-    dna = ""
-    for i in range(0, len(binum)-2, 2):
-        base = binum
-
-
+start_time = time.time()
 
 # check input and extract commandline arguments
 if len(sys.argv) != 3:
-    sys.exit("Usage: ex10_2.py <input fasta file> <k>")
+    sys.exit("Usage: ex11_2.py <input fasta file> <k>")
 
 filename = sys.argv[1]
 k = int(sys.argv[2])
@@ -74,10 +68,12 @@ seqend = pos + len(chunk)
 index_list.append([headerstart, headerend, seq_start, seqend])
 infile.close()
 
+setup_end_time = time.time()
+n_seq = len(index_list)
 kmer_dict = dict()
-# toN = bytes.maketrans(b'MRYKVHDBacgtmrykvhdbxnsw',b'NNNNNNNNACGTNNNNNNNNNNNN')
+# go through the kmers in each fasta entry
 for i, pos in enumerate(index_list):
-    print("# Working on sequence {}".format(i+1))
+    print("# Working on sequence {}/{}".format(i+1, n_seq))
     # open file, extract sequence and remove newlines
     with open(filename, "rb") as infile:
         infile.seek(pos[2])
@@ -88,19 +84,29 @@ for i, pos in enumerate(index_list):
     for i in range(len(seq)-(k-1)):
         kmer = seq[i:i+k]   #extract sequence
 
-        # add kmer occurence to the kmer dict. Add an entry if the entry doesn't
-        # already exist
+        # add kmer occurence to the kmer dict.
+        # add an entry if the entry doesn't already exist
         try:
             kmer_dict[kmer] += 1
         except:
             kmer_dict[kmer] = 1
+
+kmer_count_time = time.time()
 
 # filter out any non atcg kmers
 filtered_kmer_dict = dict()
 for kmer_list in itertools.product("atcg", repeat=k):
     kmer = "".join(kmer_list).encode()
     filtered_kmer_dict[kmer] = kmer_dict.get(kmer, 0)
-
+# print kmers that only appear once
 for kmer, val in filtered_kmer_dict.items():
     if val == 1:
         print(kmer)
+
+find_singles = time.time()
+
+                                                                                # time for 10mer
+print("# Indexing and setup:", round(setup_end_time - start_time, 5))           # 2.74714 s
+print("# kmer count:", round(kmer_count_time - setup_end_time, 5))              # 1408.58258 s
+print("# Find singles:", round(find_singles - kmer_count_time, 5))              # 0.88604 s
+print("# Total:", round(find_singles - start_time, 5))                          # 1412.21576 s
