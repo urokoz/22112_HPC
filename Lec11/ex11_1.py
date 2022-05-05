@@ -11,7 +11,10 @@ if len(sys.argv) != 3:
     sys.exit("Usage: ex11_2.py <input fasta file> <k>")
 
 filename = sys.argv[1]
-k = int(sys.argv[2])
+try:
+    k = int(sys.argv[2])
+except ValueError:
+    sys.exit("k has to be an integer over 0")
 
 # open files with byteread
 try:
@@ -93,6 +96,8 @@ for i, pos in enumerate(index_list):
 
 kmer_count_time = time.time()
 
+dict_size = sys.getsizeof(kmer_dict)
+
 # filter out any non atcg kmers
 filtered_kmer_dict = dict()
 for kmer_list in itertools.product("atcg", repeat=k):
@@ -101,7 +106,7 @@ for kmer_list in itertools.product("atcg", repeat=k):
 # print kmers that only appear once
 for kmer, val in filtered_kmer_dict.items():
     if val == 1:
-        print(kmer)
+        print(kmer.decode())
 
 find_singles = time.time()
 
@@ -110,3 +115,9 @@ print("# Indexing and setup:", round(setup_end_time - start_time, 5))           
 print("# kmer count:", round(kmer_count_time - setup_end_time, 5))              # 1408.58258 s
 print("# Find singles:", round(find_singles - kmer_count_time, 5))              # 0.88604 s
 print("# Total:", round(find_singles - start_time, 5))                          # 1412.21576 s
+print("# Memory usage of dict:", dict_size)                                     # 41 943 136 bytes
+
+# one kmer occurs: cgtaacgcgc
+
+# changing the kmer size to 16 uses a lot of memory using a dict. To the point
+# of running out of ram on a 16 gb system.

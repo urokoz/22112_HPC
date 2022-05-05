@@ -7,10 +7,20 @@ import itertools
 start_time = time.time()
 
 def num2dna(num, k):
+    """ Converts an int to a DNA kmer.
+        input:
+        num         int
+        k           int
+
+        output:
+        dna         str
+    """
+    # convert to binary of the correct length to represent the kmer
     bi_num = bin(num)[2:]
     bi_num = "0"*(k*2-len(bi_num)) + bi_num
 
     dna = ""
+    # convert binary to dna one base at a time
     for i in range(0, len(bi_num)-1, 2):
         base = bi_num[i:i+2]
 
@@ -31,7 +41,13 @@ if len(sys.argv) != 3:
     sys.exit("Usage: ex11_2.py <input fasta file> <k>")
 
 filename = sys.argv[1]
-k = int(sys.argv[2])
+try:
+    k = int(sys.argv[2])
+except ValueError:
+    sys.exit("k has to be an integer over 0")
+
+if not k > 0:
+    sys.exit("k has to be an integer over 0")
 
 # open files with byteread
 try:
@@ -92,7 +108,7 @@ setup_end_time = time.time()
 
 n_seq = len(index_list)
 kmer_dict = dict()
-index_array = bytearray(4**k)   # initiate bytearray
+kmer_array = bytearray(4**k)   # initiate bytearray
 base4 = bytes.maketrans(b'acgt',b'0123')
 # go through the kmers in each fasta entry
 for i, pos in enumerate(index_list):
@@ -112,17 +128,19 @@ for i, pos in enumerate(index_list):
             # non ATCG kmers will fail here
             idx = int(kmer, base = 4)
             # count the kmer occurences in the byte array
-            if index_array[idx] == 255:   # max count 255
+            if kmer_array[idx] == 255:   # max count 255
                 pass
             else:
-                index_array[idx] += 1
+                kmer_array[idx] += 1
         except:
             pass
 
 kmer_count_time = time.time()
 
+bytearray_size = sys.getsizeof(kmer_array)
+
 # print kmers that only appear once
-for i, val in enumerate(index_array):
+for i, val in enumerate(kmer_array):
     if val == 1:
         print(num2dna(i, k))
 
@@ -133,3 +151,9 @@ print("# Indexing and setup:", round(setup_end_time - start_time, 5))           
 print("# kmer count:", round(kmer_count_time - setup_end_time, 5))              # 1311.29641 s
 print("# Find singles:", round(find_singles - kmer_count_time, 5))              # 0.06882 s
 print("# Total:", round(find_singles - start_time, 5))                          # 1313.10158 s
+print("# Memory usage of bytearray:", bytearray_size)                           # 1 048 633 bytes
+
+# one kmer occurs: cgtaacgcgc
+
+# changing the kmer size to 16 uses 4^16 bytes of memory. Which is significantly
+# less than when using a dict.
