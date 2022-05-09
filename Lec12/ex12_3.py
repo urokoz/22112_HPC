@@ -90,7 +90,7 @@ k = 4
 hash_size = 34359738367
 n_seq = len(index_list)
 # create translation table to complement
-trans_table = bytes.maketrans(b"agctyrwskmdvhb", b"tcgarywsmkhbdv")
+trans_table = bytes.maketrans(b"AGCTYRWSKMDVHB", b"TCGARYWSMKHBDV")
 # go through the kmers in each fasta entry
 for i, pos in enumerate(index_list):
     print("# Working on sequence {}/{}".format(i+1, n_seq))
