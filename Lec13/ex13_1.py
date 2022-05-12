@@ -5,9 +5,6 @@ import time
 
 start_time = time.time()
 
-def kmer_dist(kmer1, kmer2):
-    return sum([int(a != b) for a,b in zip(kmer1, kmer2)])
-
 
 def openfile(filename, mode):
     try:
@@ -16,13 +13,74 @@ def openfile(filename, mode):
         else:
             fh = open(filename, mode)
     except:
-        print("Can't open file:", filename)
+        sys.exit("Can't open file:", filename)
     return fh
+
+
+def line_read(infile):
+    person_dict = dict()
+    for line in infile:
+        if line.startswith(b"@"):
+            barcode = line.split(b":")[-1].strip()
+
+            try:
+                person_dict[barcode] += 1
+            except:
+                person_dict[barcode] = 1
+    return person_dict
+
+
+def chunk_read(infile):
+    # initiate flags and position in file
+    person_dict = dict()
+    headerstart_flag = True
+    headerend_flag = False
+    pos = 0
+    rest = b""
+    chunk_size = 1024*1024
+    while True:
+        chunk = rest + infile.read(chunk_size) # read chunk
+        rest = b""
+        index = 0
+
+        while True:     # seek through end of chunk
+            if headerstart_flag:    # look for the start of a header
+                index = chunk.find(b"@", index)
+                if index == -1:     # header not found
+                    break
+                else:
+                    headerstart_flag = False
+                    headerend_flag = True
+
+            if headerend_flag:      # look for end of header
+                prev_index = index
+                index = chunk.find(b"\n", index)    # find first newline after "@"
+
+                if index == -1:     # newline not found
+                    rest = chunk[prev_index:]
+                    break
+                else:       # newline found
+                    barcode = chunk[index-8:index]
+                    if barcode == b"":
+                        print("index", index)
+                        print("rest", chunk[:8])
+                    try:
+                        person_dict[barcode] += 1
+                    except:
+                        person_dict[barcode] = 1
+                    headerstart_flag = True
+                    headerend_flag = False
+
+        if len(chunk) < chunk_size:
+            break
+
+        pos += chunk_size      # keep track of position in file
+    return person_dict
 
 
 # check input and extract commandline arguments
 if len(sys.argv) != 2:
-    sys.exit("Usage: ex12_2.py <input fasta file>")
+    sys.exit("Usage: ex13_1.py <input fasta file>")
 
 filename = sys.argv[1]
 
@@ -33,43 +91,18 @@ except IOError as err:
     sys.exit("Cant open file: " + str(err))
 
 
-person_dict = dict()
-for line in infile:
-    if line.startswith(b"@"):
-        barcode = line.split(b":")[-1].strip()
-
-        try:
-            person_dict[barcode] += 1
-        except:
-            person_dict[barcode] = 1
-
-person_list = sorted(person_dict.items(), key=lambda x: x[1], reverse=True)
+person_dict = chunk_read(infile)
 
 count_time = time.time()
 
-for
+person_list = sorted(person_dict.items(), key=lambda x: x[1], reverse=True)
 
+print_list = ["{}\t{}".format(barcode.decode(), count) for (barcode, count) in person_list]
 
-k_near = dict()
-for (key, val) in person_list:
+print("\n".join(print_list))
 
+print_time = time.time()
 
-
-    uniq_flag = True
-    for seq in k_near.keys():
-        if kmer_dist(key, seq) = 1:
-            k_near[seq].append(key)
-            uniq_flag = False
-            break
-    if uniq_flag:
-        k_near[key] = []
-
-k_near_time = time.time()
-
-for k,v in sorted(k_near.items(), key=lambda x: len(x[1])):
-    print(k,person_dict[k],sep="\t")
-
-print("Number of unique barcodes:", len(k_near.keys()))
-print("Barcode count time:", count_time-start_time)
-print("K-near time:", k_near_time-count_time)
-print("Total time:", k_near_time-start_time)
+print("# Barcode count time:", count_time-start_time)
+print("# Sort and print time:", print_time-count_time)
+print("# Total time:", print_time-start_time)
