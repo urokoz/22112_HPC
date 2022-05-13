@@ -61,9 +61,6 @@ def chunk_read(infile):
                     break
                 else:       # newline found
                     barcode = chunk[index-8:index]
-                    if barcode == b"":
-                        print("index", index)
-                        print("rest", chunk[:8])
                     try:
                         person_dict[barcode] += 1
                     except:
