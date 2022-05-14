@@ -3,21 +3,24 @@ import sys
 import os
 import time
 import numpy as np
+import hashlib
 
-def arebitsset(bloomfilter, hashes):
+
+def arebitsset(bloom_filter, hashes):
     # check if bits are set for any of the hashes
     for hash_number in hashes:
         byteposition = hash_number >> 3
         bitposition = hash_number & 7
         # if any hash not in filter return 0
-        if (bloomfilter[byteposition] & (1 << bitposition)) == 0:
+        if (bloom_filter[byteposition] & (1 << bitposition)) == 0:
             return 0
     return 1
 
+
 def multi_hash(kmer, k, hash_size):
     # change to int because otherwise hash() is unpredictable....
-    kmer_int = int.from_bytes(kmer, byteorder=sys.byteorder)
-    return [hash((kmer_int, i)) & hash_size for i in range(k)]
+    kmer_int = int.from_bytes(kmer, byteorder = sys.byteorder)
+    return [hash((kmer_int, h)) & hash_size for h in range(k)]
 
 
 # check input and extract commandline arguments
@@ -30,11 +33,12 @@ query_file_name = sys.argv[2]
 # open files with byteread
 try:
     with open(bloom_file_name, "rb") as bloom_file:
-        bloom_filter = bytearray(bloom_file.read())
+        bloom_filter = bloom_file.read()
     infile = open(query_file_name, "rb")
 except IOError as err:
     sys.exit("Cant open file: " + str(err))
 
+print(hashlib.md5(bloom_filter).hexdigest())
 
 # initiate flags and position in file
 index_list = []
@@ -87,19 +91,20 @@ infile.close()
 
 mersize = 30
 k = 4
-hash_size = 34359738367
+hash_size = 34359738367 # m_bits-1
+
 n_seq = len(index_list)
 # create translation table to complement
-trans_table = bytes.maketrans(b"agctyrwskmdvhb", b"tcgarywsmkhbdv")
+trans_table = bytes.maketrans(b"AGCTYRWSKMDVHB", b"TCGARYWSMKHBDV")
 # go through the kmers in each fasta entry
-for i, pos in enumerate(index_list):
-    print("# Working on sequence {}/{}".format(i+1, n_seq))
+for j, pos in enumerate(index_list):
+    print("# Working on sequence {}/{}".format(j+1, n_seq))
     # extract header, sequence and remove newlines
     with open(query_file_name, "rb") as infile:
         infile.seek(pos[0])
         header = infile.read(pos[1] - pos[0]).strip()
         infile.seek(pos[2])
-        seq = infile.read(pos[3] - pos[2])
+        seq = infile.read(pos[3] - pos[2]).strip()
     seq = seq.translate(None, delete=b"\n")
 
     match_list = []
@@ -112,7 +117,7 @@ for i, pos in enumerate(index_list):
         match_list.append(arebitsset(bloom_filter, hashes))
 
     # reverse complement seq
-    seq = seq.translate(trans_table, delete=b"\n")[::-1]
+    seq = seq.translate(trans_table)[::-1]
 
     # hash kmers and check if they are in bloom filter
     for i in range(len(seq)-(mersize-1)):

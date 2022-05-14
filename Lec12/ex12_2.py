@@ -15,10 +15,11 @@ import sys
 import os
 import time
 import numpy as np
+import hashlib
 
 start_time = time.time()
 
-def calc_bloom(n_elem = 3139742750, p = 0.01, verbose = False):
+def calc_bloom(n_elem = 3139742750, p = 0.01, verbose = True):
     # Calculate size of bloom filter
     m = np.ceil((-n_elem*np.log(p))/(np.log(2)**2))
     # round m up to the nearest power of 2
@@ -42,12 +43,12 @@ def calc_bloom(n_elem = 3139742750, p = 0.01, verbose = False):
                 break
 
     if verbose:
-        print("Blooms filter size:")                        # human.fsa output
-        print("k:", k)                                      # 4
-        print("p_true:", (1-np.exp(-k*n_elem/m_bits))**k)   # 0.00878607406931
-        print("m_bit_size:", m_bit_size)                    # 35
-        print("bits per filter:", m_bits)                   # 34359738368
-        print("bytes per filter:", m_bytes)                 # 4294967296
+        print("# Blooms filter size:")                        # human.fsa output
+        print("# k:", k)                                      # 4
+        print("# p_true:", (1-np.exp(-k*n_elem/m_bits))**k)   # 0.00878607406931
+        print("# m_bit_size:", m_bit_size)                    # 35
+        print("# bits per filter:", m_bits)                   # 34359738368
+        print("# bytes per filter:", m_bytes)                 # 4294967296
 
     return k, m_bit_size, m_bits, m_bytes
 
@@ -55,16 +56,28 @@ def calc_bloom(n_elem = 3139742750, p = 0.01, verbose = False):
 def multi_hash(kmer, k, hash_size):
     # hash kmer
     # change to int because otherwise hash() is unpredictable....
-    kmer_int = int.from_bytes(kmer, byteorder=sys.byteorder)
-    return [hash((kmer_int, i)) & hash_size for i in range(k)]
+    hashed = int.from_bytes(hashlib.sha1(kmer).digest(), byteorder=sys.byteorder)
+    hash_list = []
+    for _ in range(k):
+        hash_list.append(hashed & hash_size)
+        hashed >>= hash_size
+
+    return hash_list
 
 
-def setbits(bloomfilter, hashes):
+
+    # kmer_int = int.from_bytes(kmer, byteorder = sys.byteorder)
+    # return [hash((kmer_int, h)) & hash_size for h in range(k)]
+
+
+def setbits(bloom_filter, hashes):
     # set bits according to hash
     for hash_number in hashes:
         byteposition = hash_number >> 3
         bitposition = hash_number & 7
-        bloomfilter[byteposition] |= 1 << bitposition
+        bloom_filter[byteposition] |= (1 << bitposition)
+
+    return bloom_filter
 
 
 # check input and extract commandline arguments
@@ -133,19 +146,20 @@ hum_fsa_size = seqend
 p = 0.01
 k, m_bit_size, m_bits, m_bytes = calc_bloom(hum_fsa_size, p)
 hash_size = m_bits-1
+mersize = 30
+bloom_filter = bytearray(m_bytes)   # initiate bloom filter
 
 setup_end_time = time.time()
 
-mersize = 30
+
 n_seq = len(index_list)
-bloom_filter = bytearray(m_bytes)   # initiate bloom filter
 # go through the kmers in each fasta entry
-for i, pos in enumerate(index_list):
-    print("# Working on sequence {}/{}".format(i+1, n_seq))
+for j, pos in enumerate(index_list):
+    print("# Working on sequence {}/{}".format(j+1, n_seq))
     # open file, extract sequence and remove newlines
     with open(filename, "rb") as infile:
         infile.seek(pos[2])
-        seq = infile.read(pos[3] - pos[2])
+        seq = infile.read(pos[3] - pos[2]).strip()
     seq = seq.translate(None, delete=b"\n")
 
     # hash kmers and add to bloom filter
@@ -154,15 +168,17 @@ for i, pos in enumerate(index_list):
 
         hashes = multi_hash(kmer, k, hash_size)
 
-        setbits(bloom_filter, hashes)
+        bloom_filter = setbits(bloom_filter, hashes)
 
 bloom_time = time.time()
 
 # save bloom filter
-with open("bloom_filter.bin", "wb") as outfile:
+with open("bloom_filter2.bin", "wb") as outfile:
     outfile.write(bloom_filter)
 
 end_time = time.time()
+
+print(hashlib.md5(bloom_filter).hexdigest())
 
 
 print("# Indexing and setup:", round(setup_end_time - start_time, 5))
