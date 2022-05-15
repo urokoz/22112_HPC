@@ -3,10 +3,13 @@ import gzip
 import sys
 import time
 
+print("# ex13_1.py", file=sys.stderr)
 start_time = time.time()
 
 
 def openfile(filename, mode):
+    """ Open gzip or normal files.
+    """
     try:
         if filename.endswith('.gz'):
             fh = gzip.open(filename, mode=mode)
@@ -17,20 +20,10 @@ def openfile(filename, mode):
     return fh
 
 
-def line_read(infile):
-    person_dict = dict()
-    for line in infile:
-        if line.startswith(b"@"):
-            barcode = line.split(b":")[-1].strip()
-
-            try:
-                person_dict[barcode] += 1
-            except:
-                person_dict[barcode] = 1
-    return person_dict
-
-
 def chunk_read(infile):
+    """ Read file using chunk read to find and count barcodes.
+        Output counts as a dict.
+    """
     # initiate flags and position in file
     person_dict = dict()
     headerstart_flag = True
@@ -60,6 +53,7 @@ def chunk_read(infile):
                     rest = chunk[prev_index:]
                     break
                 else:       # newline found
+                    # extract barcodes and count in dict
                     barcode = chunk[index-8:index]
                     try:
                         person_dict[barcode] += 1
@@ -72,6 +66,8 @@ def chunk_read(infile):
             break
 
         pos += chunk_size      # keep track of position in file
+
+    infile.close()
     return person_dict
 
 
@@ -92,14 +88,13 @@ person_dict = chunk_read(infile)
 
 count_time = time.time()
 
+# sort dict, format for printing, join and print in one go.
 person_list = sorted(person_dict.items(), key=lambda x: x[1], reverse=True)
-
 print_list = ["{}\t{}".format(barcode.decode(), count) for (barcode, count) in person_list]
-
 print("\n".join(print_list))
 
 print_time = time.time()
 
-print("# Barcode count time:", count_time-start_time)
-print("# Sort and print time:", print_time-count_time)
-print("# Total time:", print_time-start_time)
+print("# Barcode count time:", count_time-start_time, file=sys.stderr)
+print("# Sort and print time:", print_time-count_time, file=sys.stderr)
+print("# Total time:", print_time-start_time, file=sys.stderr)
