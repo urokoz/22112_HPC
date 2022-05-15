@@ -1,0 +1,30 @@
+# ex13_1.py
+# Barcode count time: 12.275766134262085
+# Sort and print time: 0.008445024490356445
+# Total time: 12.284211158752441
+# ex13_1_2.py
+# Number of unique barcodes: 40
+# Load time: 0.01392054557800293
+# Find split time: 0.004091978073120117
+# Map close time: 0.8866784572601318
+# Total time: 0.9046909809112549
+# ex13_2.py
+# Bytes demultiplexed: 1074790400
+# Bytes demultiplexed: 2149580800
+# Bytes demultiplexed: 2831155200
+
+Demultiplexed files can be found in folder:
+demulti/
+
+# Setup time: 0.0003333091735839844
+# Indexing time: 20.012705326080322
+# Writing time: 240.34258675575256
+# Total time: 260.35565519332886
+
+# Demultiplexed 7734727/7811143 entries
+
+#########
+This is the output for ngs1test.fastq.gz
+
+time ~275 s
+Output files take up ~504 MB
